@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="https://if-i-wifi.github.io/if-i-wifi/"><b>▶ Live demo</b></a> ·
+  <a href="https://vincenzoparente04.github.io/if-i-wi-fi/"><b>▶ Live demo</b></a> ·
   <a href="#-quick-start">Quick start</a> ·
   <a href="docs/HOW_IT_WORKS.md">How it works</a> ·
   <a href="docs/VISION.md">Vision</a> ·
@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  <a href="https://if-i-wifi.github.io/if-i-wifi/"><img src="media/demo.gif" alt="Web demo: a person walks into the room, the Wi-Fi signal changes, the detector reports motion, then presence while seated, and switches the light" width="100%"></a>
+  <a href="https://vincenzoparente04.github.io/if-i-wi-fi/"><img src="media/demo.gif" alt="Web demo: a person walks into the room, the Wi-Fi signal changes, the detector reports motion, then presence while seated, and switches the light" width="100%"></a>
   <br><sub>The web demo: a simulated room running the real detector. Someone walks in, sits down and leaves, and the Wi-Fi link notices every step.</sub>
 </p>
 
@@ -107,7 +107,7 @@ one we used on stage; only the room is simulated.
 ## ⚡ Quick start
 
 ```bash
-git clone https://github.com/if-i-wifi/if-i-wifi.git && cd if-i-wifi
+git clone https://github.com/vincenzoparente04/if-i-wi-fi.git && cd if-i-wi-fi
 
 # 1. The web demo: nothing to install
 python3 -m http.server 8000        # then open http://localhost:8000/demo/
@@ -186,7 +186,7 @@ This is a hackathon project that grew. Here is what is real:
 ## 📁 Repository layout
 
 ```
-if-i-wifi/
+if-i-wi-fi/
 ├── demo/                 web demo: simulated room + the real RSSI detector (GitHub Pages)
 ├── rssi/                 Pipeline 1: RSSI detector, dashboard backend, UNO Q orchestration
 ├── csi/                  Pipeline 2: CSI host (presence, position, vitals, WebSocket)

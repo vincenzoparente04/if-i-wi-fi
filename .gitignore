@@ -45,3 +45,7 @@ Cargo.lock
 .idea/
 *.swp
 .DS_Store
+
+# R / RStudio
+.Rhistory
+.RData
