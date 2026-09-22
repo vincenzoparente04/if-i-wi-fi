@@ -1,0 +1,21 @@
+Copyright (c) 2026 Andrea Cacioppo, Vincenzo Parente, Pierluca Primiceri
+
+Licensed under either of
+
+  * Apache License, Version 2.0 (LICENSE-APACHE or
+    https://www.apache.org/licenses/LICENSE-2.0)
+  * MIT license (LICENSE-MIT or https://opensource.org/licenses/MIT)
+
+at your option.
+
+Parts of this repository are derived from ruvnet/RuView (wifi-densepose),
+which is itself dual-licensed under MIT OR Apache-2.0: the Rust host in
+experimental/host-rust/, the ESP-IDF firmware in firmware/esp32-csi-node/,
+and several signal-processing modules in csi/ (see the Acknowledgements in
+README.md and docs/what-was-cut.md). Those files remain under the terms of
+their original licenses.
+
+Unless you explicitly state otherwise, any contribution intentionally
+submitted for inclusion in this project by you, as defined in the Apache-2.0
+license, shall be dual licensed as above, without any additional terms or
+conditions.

@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "if-i-wifi"
+version = "0.1.0"
+description = "Privacy-first presence sensing from Wi-Fi: RSSI on the Arduino UNO Q and a CSI pipeline for ESP32 meshes."
+readme = "README.md"
+license = { text = "MIT OR Apache-2.0" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Andrea Cacioppo" },
+    { name = "Vincenzo Parente" },
+    { name = "Pierluca Primiceri" },
+]
+
+# Core dependencies of the CSI pipeline (csi.*). The RSSI pipeline (rssi.*)
+# only needs the standard library; scikit-learn is used by rssi.rssi_ml.
+dependencies = [
+    "numpy>=1.24,<3.0",
+    "scipy>=1.10,<2.0",
+    "scikit-learn>=1.3,<2.0",
+    "joblib>=1.3,<2.0",
+    "websockets>=11.0,<14.0",
+    "pyserial>=3.5,<4.0",
+]
+
+[project.optional-dependencies]
+# Home Assistant / MQTT bridge (csi.ha_bridge).
+mqtt = ["paho-mqtt>=1.6,<3.0"]
+
+# Plotting / live visualization scripts (csi.csi_plot).
+plot = ["matplotlib>=3.7,<4.0"]
+
+# msgpack for csi.csi_processor.RouterClient (UNO Q talking to a wired ESP32).
+# rssi.bridge_client encodes MessagePack inline and does not need it.
+unoq = ["msgpack>=1.0,<2.0"]
+
+# Development tools.
+dev = [
+    "pytest>=7.4,<9.0",
+    "pytest-asyncio>=0.21,<1.0",
+    "ruff>=0.5,<1.0",
+    "mypy>=1.7,<2.0",
+]
+
+[project.scripts]
+ifiwifi-rssi-demo = "rssi.rssi_demo:main"
+ifiwifi-monitor = "csi.csi_mac:main"
+ifiwifi-ws-server = "csi.quadrants.ws_server:main"
+
+[tool.setuptools.packages.find]
+include = ["csi*", "rssi*"]
+exclude = ["tests*", "experimental*", "tools*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]  # line length handled by formatter
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+# Strict mypy is not enforced repo-wide today. Add per-module strict
+# settings when you're ready to clean up a specific subpackage.

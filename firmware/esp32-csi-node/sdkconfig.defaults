@@ -1,0 +1,31 @@
+# If-I-Wi-Fi — ESP32-S3 CSI node default SDK config.
+# Applied by idf.py when no sdkconfig exists in the build directory.
+
+CONFIG_IDF_TARGET="esp32s3"
+
+# 8 MB flash, custom partition table (no OTA partitions).
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+
+# Size optimization (the binary is ~250 KB without OTA/WASM/display).
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+
+# CSI must be enabled in the WiFi driver.
+CONFIG_ESP_WIFI_CSI_ENABLED=y
+
+# Logging.
+CONFIG_BOOTLOADER_LOG_LEVEL_WARN=y
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# Main task stack — the CSI callback path needs headroom.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Application-specific defaults (override via menuconfig per device).
+CONFIG_CSI_WIFI_SSID="your-2.4GHz-network"
+CONFIG_CSI_WIFI_PASSWORD=""
+CONFIG_CSI_WIFI_CHANNEL=6
+CONFIG_CSI_TARGET_IP="192.168.1.100"
+CONFIG_CSI_TARGET_PORT=5555
+CONFIG_CSI_NODE_ID=1

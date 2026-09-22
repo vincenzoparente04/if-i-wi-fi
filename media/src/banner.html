@@ -1,0 +1,74 @@
+<!doctype html>
+<!-- Source of media/banner.png (1280x640, also the GitHub social preview).
+     Render: open in Chrome at 1280x640 and screenshot, or see media/src/README.md -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>If-I-Wi-Fi banner</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #05070f; --text: #e8edff; --muted: #8d98b8; --cyan: #35e0ff; --blue: #3a4bff; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 640px; overflow: hidden; background: var(--bg); color: var(--text); font-family: Inter, sans-serif; }
+  .stage { position: relative; width: 1280px; height: 640px; overflow: hidden;
+           background: radial-gradient(700px 520px at 930px 330px, rgba(58, 75, 255, .30), transparent 70%),
+                       radial-gradient(900px 400px at 200px 700px, rgba(53, 224, 255, .07), transparent 70%), var(--bg); }
+  svg.waves { position: absolute; inset: 0; }
+  .board { position: absolute; right: 70px; top: 88px; width: 560px; filter: drop-shadow(0 30px 60px rgba(0, 0, 0, .6)) drop-shadow(0 0 50px rgba(58, 75, 255, .45)); transform: rotate(-4deg); }
+  .copy { position: absolute; left: 76px; top: 92px; width: 640px; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 15px; letter-spacing: .22em; color: var(--cyan); text-transform: uppercase; display: flex; align-items: center; gap: 12px; }
+  .eyebrow::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 14px var(--cyan); }
+  .wordmark { font-family: Anton, Impact, sans-serif; font-style: italic; font-size: 156px; line-height: 1; letter-spacing: .01em; margin-top: 18px; }
+  .wordmark span { color: var(--cyan); text-shadow: 0 0 40px rgba(53, 224, 255, .45); }
+  .tag { font-size: 38px; font-weight: 600; letter-spacing: -.01em; margin-top: 20px; }
+  .sub { font-size: 19px; line-height: 1.5; color: var(--muted); margin-top: 14px; width: 560px; }
+  .chips { display: flex; gap: 10px; margin-top: 30px; }
+  .chip { font-family: "JetBrains Mono", monospace; font-size: 13px; letter-spacing: .06em; color: #c4cdea; border: 1px solid #243056; background: rgba(14, 21, 40, .7); border-radius: 999px; padding: 8px 14px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <svg class="waves" viewBox="0 0 1280 640" id="waves"></svg>
+  <img class="board" src="uno-q-render.png" alt="">
+  <div class="copy">
+    <div class="eyebrow">Wi-Fi sensing · Arduino UNO Q</div>
+    <div class="wordmark">IF-I-WI<span>FI</span></div>
+    <div class="tag">The sixth sense of buildings.</div>
+    <div class="sub">Presence detection from the Wi-Fi that is already in the room. No cameras, no wearables, no cloud.</div>
+    <div class="chips"><span class="chip">RSSI + CSI</span><span class="chip">Edge ML</span><span class="chip">ESP32 mesh</span><span class="chip">Privacy by design</span></div>
+  </div>
+</div>
+<script>
+  // Wi-Fi "strands" sweeping across the banner and bending around the board
+  const root = document.getElementById("waves"), NS = "http://www.w3.org/2000/svg";
+  root.innerHTML = '<defs><linearGradient id="fade" x1="0" x2="1"><stop offset="0.5" stop-color="#fff" stop-opacity="0"/><stop offset="0.66" stop-color="#fff" stop-opacity="1"/></linearGradient><mask id="m"><rect width="1280" height="640" fill="url(#fade)"/></mask></defs>';
+  const svg = document.createElementNS(NS, "g"); svg.setAttribute("mask", "url(#m)"); root.appendChild(svg);
+  for (let j = 0; j < 9; j++) {
+    const o = (j - 4) / 4, pts = [];
+    for (let x = -20; x <= 1300; x += 8) {
+      const t = x / 1280, env = Math.exp(-(((x - 930) / 330) ** 2));
+      const y = 360 + o * (26 + 70 * env) + 10 * Math.sin(t * 14 + j * .7) * (0.35 + env) + 6 * Math.sin(t * 37 + j) * env;
+      pts.push(`${x},${y.toFixed(1)}`);
+    }
+    const p = document.createElementNS(NS, "polyline");
+    p.setAttribute("points", pts.join(" "));
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke", j === 4 ? "rgba(53,224,255,.75)" : "rgba(53,224,255,.16)");
+    p.setAttribute("stroke-width", j === 4 ? "1.6" : "1");
+    svg.appendChild(p);
+  }
+  for (let i = 0; i < 14; i++) {  // packets
+    const x = 60 + i * 92, c = document.createElementNS(NS, "circle");
+    const t = x / 1280, env = Math.exp(-(((x - 930) / 330) ** 2));
+    c.setAttribute("cx", x); c.setAttribute("cy", (360 + 10 * Math.sin(t * 14 + 4 * .7) * (0.35 + env) + 6 * Math.sin(t * 37 + 4) * env).toFixed(1));
+    c.setAttribute("r", 2.2); c.setAttribute("fill", "rgba(255,255,255,.8)");
+    svg.appendChild(c);
+  }
+  // perspective floor grid
+  const g = document.createElementNS(NS, "g"); g.setAttribute("stroke", "rgba(58,75,255,.16)"); g.setAttribute("stroke-width", "1");
+  for (let i = -12; i <= 12; i++) { const l = document.createElementNS(NS, "line"); l.setAttribute("x1", 640 + i * 40); l.setAttribute("y1", 470); l.setAttribute("x2", 640 + i * 190); l.setAttribute("y2", 660); g.appendChild(l); }
+  for (let k = 0; k < 6; k++) { const y = 470 + (k * k) * 7 + k * 6; const l = document.createElementNS(NS, "line"); l.setAttribute("x1", 0); l.setAttribute("y1", y); l.setAttribute("x2", 1280); l.setAttribute("y2", y); g.appendChild(l); }
+  root.insertBefore(g, svg);
+</script>
+</body>
+</html>

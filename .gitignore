@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Trained models and captured data (generated locally)
+*.joblib
+*_model.json
+*_labels.json
+csi_captures/
+csi_capture_*.txt
+captured/
+data/
+*.pcap
+*.pcapng
+*.mat
+
+# Secrets: never commit Wi-Fi credentials
+secrets.h
+**/secrets.h
+
+# Rust
+/experimental/host-rust/target/
+**/*.rs.bk
+Cargo.lock
+
+# ESP-IDF
+/firmware/esp32-csi-node/build/
+/firmware/esp32-csi-node/sdkconfig
+/firmware/esp32-csi-node/sdkconfig.old
+/firmware/esp32-csi-node/dependencies.lock
+/firmware/esp32-csi-node/managed_components/
+
+# Arduino
+/firmware/*/build/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store

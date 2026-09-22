@@ -1,0 +1,40 @@
+menu "CSI Node Config"
+
+    config CSI_WIFI_SSID
+        string "WiFi SSID"
+        default "your-2.4GHz-network"
+        help
+            The SSID of the WiFi network this node will join.
+
+    config CSI_WIFI_PASSWORD
+        string "WiFi password"
+        default ""
+        help
+            WPA2 password. Empty for open networks.
+
+    config CSI_WIFI_CHANNEL
+        int "Default WiFi channel"
+        range 1 165
+        default 6
+        help
+            Channel used when channel hopping is disabled (hop_count == 1).
+
+    config CSI_TARGET_IP
+        string "Aggregator IP"
+        default "192.168.1.100"
+        help
+            The host running ifiwifi-capture.
+
+    config CSI_TARGET_PORT
+        int "Aggregator UDP port"
+        range 1024 65535
+        default 5555
+
+    config CSI_NODE_ID
+        int "Node ID"
+        range 1 255
+        default 1
+        help
+            Distinct identifier used in the CSI frame header (byte 4).
+
+endmenu

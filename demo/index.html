@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>If-I-Wi-Fi · Live Demo</title>
+<meta name="description" content="Presence detection from nothing but Wi-Fi signal strength. Interactive demo of the If-I-Wi-Fi detector.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05070f;
+    --panel: #0a0f1d;
+    --panel-2: #0e1528;
+    --line: #19223d;
+    --text: #e8edff;
+    --muted: #7d89aa;
+    --dim: #4a5576;
+    --empty: #35e0ff;
+    --motion: #ff5a4e;
+    --still: #ffb547;
+    --cal: #7b88ff;
+    --board: #3a4bff;
+    --state: var(--empty);
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); font-family: var(--sans); }
+  body { min-height: 100vh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+  body[data-state="EMPTY"] { --state: var(--empty); }
+  body[data-state="MOTION"] { --state: var(--motion); }
+  body[data-state="STILL"] { --state: var(--still); }
+  body[data-state="CALIBRATING"] { --state: var(--cal); }
+
+  /* ---------- top bar ---------- */
+  .top { display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+  .wordmark { font-family: Anton, Impact, "Arial Narrow", sans-serif; font-size: 26px; letter-spacing: .02em; line-height: 1; font-style: italic; }
+  .wordmark span { color: var(--state); transition: color .4s; }
+  .tagline { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pills { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
+  .pill { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+          border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; display: flex; align-items: center; gap: 7px; }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--state); box-shadow: 0 0 10px var(--state); }
+  .pill a { color: inherit; text-decoration: none; }
+  .pill a:hover { color: var(--text); }
+
+  /* ---------- layout ---------- */
+  .grid { flex: 1; display: grid; gap: 14px; padding: 14px 20px;
+          grid-template-columns: minmax(0, 1fr) 340px;
+          grid-template-rows: minmax(0, 1fr) auto;
+          grid-template-areas: "scene side" "chart side"; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; position: relative; overflow: hidden; }
+  .eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+
+  .scene { grid-area: scene; min-height: 380px; }
+  .scene canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .scene .hud { position: absolute; left: 16px; top: 14px; right: 16px; display: flex; justify-content: space-between; pointer-events: none; }
+  .controls { position: absolute; left: 14px; bottom: 14px; right: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .controls .hint { color: var(--dim); font-size: 12px; margin-right: 4px; }
+  button { font: 500 13px var(--sans); color: var(--text); background: rgba(14, 21, 40, .85); border: 1px solid var(--line);
+           border-radius: 9px; padding: 8px 13px; cursor: pointer; backdrop-filter: blur(6px); transition: border-color .2s, color .2s; }
+  button:hover { border-color: var(--state); }
+  button[aria-pressed="true"] { border-color: var(--state); color: var(--state); }
+  .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+             text-align: center; padding: 0 10%; pointer-events: none; transition: opacity .5s; }
+  .overlay.hidden { opacity: 0; }
+  .overlay .msg { font-size: 20px; font-weight: 600; letter-spacing: .01em; }
+  .overlay .sub { color: var(--muted); font-size: 13px; }
+  .progress { width: min(320px, 70%); height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .progress i { display: block; height: 100%; width: 0; background: var(--cal); box-shadow: 0 0 12px var(--cal); transition: width .2s linear; }
+
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .state { padding: 18px 18px 16px; }
+  .state::before { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--state) 22%, transparent), transparent 60%); transition: background .4s; }
+  .state > * { position: relative; }
+  .state .big { font-family: Anton, Impact, sans-serif; font-size: 54px; line-height: 1.05; letter-spacing: .02em; color: var(--state); transition: color .4s; margin-top: 6px; }
+  .state .desc { color: var(--muted); font-size: 13.5px; margin-top: 2px; min-height: 1.3em; }
+  .conf { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .conf .bar { flex: 1; height: 5px; border-radius: 5px; background: var(--line); overflow: hidden; }
+  .conf .bar i { display: block; height: 100%; background: var(--state); width: 0; transition: width .25s, background .4s; }
+
+  .metrics { padding: 14px 18px 16px; }
+  .metric { display: grid; grid-template-columns: 96px 1fr 64px; align-items: center; gap: 10px; margin-top: 11px; font-size: 12.5px; }
+  .metric .name { color: var(--muted); }
+  .metric .val { font-family: var(--mono); text-align: right; font-size: 12px; }
+  .meter { position: relative; height: 6px; border-radius: 6px; background: var(--line); }
+  .meter i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: var(--dim); width: 0; transition: width .15s, background .3s; }
+  .meter.hot i { background: var(--state); box-shadow: 0 0 10px var(--state); }
+  .meter b { position: absolute; top: -3px; bottom: -3px; left: 50%; width: 2px; background: var(--muted); opacity: .7; border-radius: 1px; }
+  .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+  .fact { background: var(--panel-2); border-radius: 9px; padding: 8px 10px; }
+  .fact .k { font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em; color: var(--dim); text-transform: uppercase; }
+  .fact .v { font-family: var(--mono); font-size: 14px; margin-top: 3px; }
+
+  .action { padding: 14px 18px; display: flex; align-items: center; gap: 14px; }
+  .bulb { width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; background: var(--panel-2); transition: background .4s, box-shadow .4s; }
+  .bulb svg { width: 22px; height: 22px; stroke: var(--dim); transition: stroke .4s; }
+  .action.on .bulb { background: color-mix(in srgb, var(--still) 22%, transparent); box-shadow: 0 0 26px color-mix(in srgb, var(--still) 55%, transparent); }
+  .action.on .bulb svg { stroke: var(--still); }
+  .action .t { font-weight: 600; font-size: 14px; }
+  .action .s { font-family: var(--mono); color: var(--muted); font-size: 11px; margin-top: 3px; }
+
+  .log { flex: 1; min-height: 120px; padding: 14px 18px; display: flex; flex-direction: column; }
+  .log ul { list-style: none; margin-top: 8px; overflow: hidden; flex: 1; }
+  .log li { display: grid; grid-template-columns: 44px 10px 1fr; gap: 8px; align-items: baseline; font-size: 12.5px; padding: 5px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); animation: in .35s ease-out; }
+  .log li time { font-family: var(--mono); color: var(--dim); font-size: 11px; }
+  .log li i { width: 7px; height: 7px; border-radius: 50%; display: block; transform: translateY(-1px); }
+  .log li span { color: #c9d2ee; }
+  .log li code { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  @keyframes in { from { opacity: 0; transform: translateY(-4px); } }
+
+  .chart { grid-area: chart; height: 188px; padding: 12px 16px 10px; display: flex; flex-direction: column; }
+  .chart .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+  .legend span::before { content: ""; display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; background: var(--c); }
+  .legend .band::before { height: 8px; opacity: .35; }
+  .chart canvas { flex: 1; width: 100%; min-height: 0; margin-top: 6px; }
+
+  footer { display: flex; justify-content: space-between; gap: 16px; padding: 4px 20px 14px; color: var(--dim); font-size: 12px; }
+  footer b { color: var(--muted); font-weight: 500; }
+
+  body.capture .controls { display: none; }
+  body.capture *, body.capture *::before { transition: none !important; animation: none !important; }
+
+  @media (min-width: 901px) {
+    body { height: 100vh; overflow: hidden; }
+    .grid { min-height: 0; }
+    .scene { min-height: 0; }
+    .side { overflow: hidden; }
+    .log { min-height: 0; }
+  }
+
+  @media (max-width: 900px) {
+    .top { flex-wrap: wrap; padding: 12px 16px; }
+    .tagline { display: none; }
+    .grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: none; padding: 12px 16px; }
+    .side { display: contents; }
+    .scene, .chart { grid-area: auto; }
+    .state { order: 1; } .scene { order: 2; } .chart { order: 3; } .metrics { order: 4; } .action { order: 5; }
+    .scene { min-height: 0; aspect-ratio: 4 / 3.4; }
+    .log { display: none; }
+    .grid { align-content: start; }
+    .chart .head { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .legend { gap: 10px; font-size: 11px; }
+    .state .big { font-size: 44px; }
+    footer { flex-direction: column; padding: 4px 16px 16px; }
+  }
+</style>
+</head>
+<body data-state="CALIBRATING">
+  <header class="top">
+    <div class="brand">
+      <div class="wordmark">IF-I-WI<span>FI</span></div>
+      <div class="tagline">Presence sensing from the Wi-Fi already in the room · Arduino UNO Q</div>
+    </div>
+    <div class="pills">
+      <div class="pill"><span class="dot"></span><span id="srcLabel">Simulated room</span></div>
+      <div class="pill" id="ratePill">20 Hz</div>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="card scene" aria-label="Room view">
+      <canvas id="scene"></canvas>
+      <div class="hud"><span class="eyebrow">Room view</span><span class="eyebrow" id="sceneNote">Single Wi-Fi link · RSSI</span></div>
+      <div class="overlay" id="overlay">
+        <div class="msg" id="ovMsg">Stay out of the room…</div>
+        <div class="progress"><i id="ovBar"></i></div>
+        <div class="sub" id="ovSub">Measuring how an empty room looks to Wi-Fi</div>
+      </div>
+      <div class="controls" id="controls">
+        <span class="hint">Try it:</span>
+        <button data-goal="wander">Walk in</button>
+        <button data-goal="sit">Sit down</button>
+        <button data-goal="away">Leave</button>
+        <button id="autoBtn" aria-pressed="true">Auto</button>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="card state" aria-live="polite">
+        <div class="eyebrow">Room state</div>
+        <div class="big" id="stateBig">CALIBRATING</div>
+        <div class="desc" id="stateDesc">Learning the empty-room baseline</div>
+        <div class="conf"><span>Confidence</span><span class="bar"><i id="confBar"></i></span><span id="confVal">–</span></div>
+      </div>
+
+      <div class="card metrics">
+        <div class="eyebrow">Detector features · vs empty room</div>
+        <div class="metric"><span class="name">Signal swing</span><span class="meter" id="mSwing"><i></i><b></b></span><span class="val" id="vSwing">–</span></div>
+        <div class="metric"><span class="name">Jitter</span><span class="meter" id="mJitter"><i></i><b></b></span><span class="val" id="vJitter">–</span></div>
+        <div class="metric"><span class="name">Level shift</span><span class="meter" id="mLevel"><i></i><b></b></span><span class="val" id="vLevel">–</span></div>
+        <div class="facts">
+          <div class="fact"><div class="k">RSSI</div><div class="v" id="fRssi">–</div></div>
+          <div class="fact"><div class="k">Baseline</div><div class="v" id="fBase">–</div></div>
+          <div class="fact"><div class="k">Threshold</div><div class="v" id="fTh">–</div></div>
+        </div>
+      </div>
+
+      <div class="card action" id="action">
+        <div class="bulb"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2V16h5v-.2c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3Z"/></svg></div>
+        <div><div class="t" id="actT">Room light · OFF</div><div class="s" id="actS">MCU (STM32U585) · relay idle</div></div>
+      </div>
+
+      <div class="card log">
+        <div class="eyebrow">Event log</div>
+        <ul id="log"></ul>
+      </div>
+    </aside>
+
+    <section class="card chart">
+      <div class="head">
+        <span class="eyebrow">Wi-Fi signal strength · last 24 s</span>
+        <div class="legend">
+          <span style="--c:#e8edff">RSSI (median-filtered)</span>
+          <span style="--c:#7d89aa">empty-room baseline</span>
+          <span class="band" style="--c:#ffb547">static-body band</span>
+        </div>
+      </div>
+      <canvas id="chart"></canvas>
+    </section>
+  </main>
+
+  <footer>
+    <span id="footNote"><b>Simulated signal, real detector.</b> The detection logic is the same algorithm as <code>rssi/rssi_demo.py</code>, which ran on the Arduino UNO Q.</span>
+    <span>No cameras. No wearables. Just the Wi-Fi that is already there.</span>
+  </footer>
+
+<script>
+"use strict";
+/* ============================================================
+   If-I-Wi-Fi web demo
+   - Simulated mode (default): a scripted person walks around a room,
+     a physics-inspired model turns their position into an RSSI stream,
+     and the *real* detector (ported from rssi/rssi_demo.py) classifies it.
+   - Live mode (window.IFI_LIVE = true, set by rssi_demo.py, or ?live):
+     reads the detector state from the Python backend via /stream (SSE).
+   URL flags: ?seed=N  deterministic run · ?capture  hide controls,
+              manual clock (window.__advance(ms)) for GIF recording.
+   ============================================================ */
+const Q = new URLSearchParams(location.search);
+const LIVE = window.IFI_LIVE === true || Q.has("live");
+const CAPTURE = Q.has("capture");
+if (CAPTURE) document.body.classList.add("capture");
+
+/* ---------- seeded RNG ---------- */
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rnd = mulberry32(Q.has("seed") ? +Q.get("seed") : (Math.random() * 2 ** 31) | 0);
+function gauss() { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+/* ============================================================
+   Detector: same algorithm as rssi/rssi_demo.py (_rssi_worker)
+   ============================================================ */
+const percentile = (vals, q) => { if (!vals.length) return 0; const s = [...vals].sort((a, b) => a - b); const k = (s.length - 1) * q / 100, lo = Math.floor(k), hi = Math.min(lo + 1, s.length - 1); return s[lo] * (1 - (k - lo)) + s[hi] * (k - lo); };
+const trimmedP2P = (v) => v.length < 4 ? 0 : percentile(v, 95) - percentile(v, 5);
+const median = (v) => { if (!v.length) return 0; const s = [...v].sort((a, b) => a - b); return s[s.length >> 1]; };
+const stdev = (v) => { const n = v.length; if (n < 2) return 0; const m = v.reduce((a, b) => a + b, 0) / n; return Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1)); };
+
+class Detector {
+  constructor({ rate = 20, window = 50, warmupS = 1.5, calS = 6 } = {}) {
+    Object.assign(this, { rate, W: window, warmupS, calS, MEDK: 5, K: 14, ON: 0.70, OFF: 0.25 });
+    this.phase = "warmup"; this.t = 0; this.medq = []; this.cal = []; this.rec = []; this.above = []; this.moving = [];
+    this.presence = false; this.f = { rs: 0, rj: 0, ratio: 0, ld: 0, frac: 0, mfrac: 0 };
+  }
+  get progress() { return this.phase === "warmup" ? 0 : this.phase === "calibrating" ? Math.min((this.t - this.tCal) / this.calS, 1) : 1; }
+  get armed() { return this.phase === "ready" && this.rec.length >= this.W; }
+  push(raw, dt) {
+    this.t += dt;
+    this.medq.push(raw); if (this.medq.length > this.MEDK) this.medq.shift();
+    const v = median(this.medq);           // median prefilter kills single-sample driver spikes
+    this.v = v;
+    if (this.phase === "warmup") { if (this.t >= this.warmupS) { this.phase = "calibrating"; this.tCal = this.t; } return; }
+    if (this.phase === "calibrating") { this.cal.push(v); if (this.t - this.tCal >= this.calS) this.calibrate(); return; }
+    this.rec.push(v); if (this.rec.length > this.W) this.rec.shift();
+    if (this.rec.length < this.W) return;
+    const rs = trimmedP2P(this.rec) / this.baseSwing;
+    const rj = stdev(this.rec) / this.baseJitter;
+    const ratio = Math.max(rs, rj);         // variability  -> movement
+    const ld = Math.abs(v - this.baseLevel); // level offset -> static body
+    const hot = ratio > this.th || ld > this.levelDb;
+    this.above.push(hot ? 1 : 0); if (this.above.length > this.K) this.above.shift();
+    this.moving.push(ratio > this.th ? 1 : 0); if (this.moving.length > this.K) this.moving.shift();
+    const frac = this.above.reduce((a, b) => a + b, 0) / this.above.length;
+    const mfrac = this.moving.reduce((a, b) => a + b, 0) / this.moving.length;
+    if (!this.presence && frac >= this.ON) this.presence = true;
+    else if (this.presence && frac <= this.OFF) this.presence = false;
+    this.f = { rs, rj, ratio, ld, frac, mfrac };
+  }
+  calibrate() {
+    const cal = this.cal, W = this.W, sw = [], jw = [];
+    for (let i = W; i <= cal.length; i++) { const c = cal.slice(i - W, i); sw.push(trimmedP2P(c)); jw.push(stdev(c)); }
+    this.baseSwing = Math.max(median(sw), 0.4);
+    this.baseJitter = Math.max(median(jw), 0.25);
+    this.baseLevel = median(cal);
+    this.levelDb = Math.max(3.5, Math.min(6 * stdev(cal), 7));
+    const emp = sw.map((s, i) => Math.max(s / this.baseSwing, jw[i] / this.baseJitter));
+    this.th = Math.max(2.6, Math.min(3.6, (emp.length ? percentile(emp, 95) : 1.5) * 1.4)); // AUTO threshold
+    this.phase = "ready";
+  }
+}
+
+/* ============================================================
+   Simulated room: one person, one Wi-Fi link (AP <-> UNO Q)
+   World: x in [-1, 1] left/right, z in [0, 1] near/far, y = height
+   ============================================================ */
+const LINK_Z = 0.46, AP = { x: -0.66, z: LINK_Z }, BOARD = { x: 0.66, z: LINK_Z }, DEV_H = 0.30;
+const DOOR = { x: -1.35, z: 0.95 }, EXIT = { x: 1.35, z: 0.92 }, CHAIR = { x: 0.14, z: 0.5 };
+const WANDER = [{ x: -0.36, z: 0.3 }, { x: 0.12, z: 0.66 }, { x: 0.44, z: 0.32 }, { x: -0.12, z: 0.62 }, { x: -0.46, z: 0.58 }, { x: 0.3, z: 0.44 }, { x: -0.05, z: 0.28 }];
+
+const person = { in: false, x: DOOR.x, z: DOOR.z, seat: 0, speed: 0, phase: 0, path: [], goal: "away", lastW: -1, facing: 1 };
+function distToLink(x, z) { const cx = Math.max(AP.x, Math.min(BOARD.x, x)); return Math.hypot(x - cx, z - LINK_Z); }
+
+function updatePerson(dt) {
+  const p = person, g = p.goal;
+  if (g !== "away" && !p.in) { Object.assign(p, { in: true, x: DOOR.x, z: DOOR.z, path: [{ x: -0.78, z: 0.78 }] }); }
+  const wantSeat = g === "sit" && p.path.length === 0 && Math.hypot(p.x - CHAIR.x, p.z - CHAIR.z) < 0.03;
+  if (!wantSeat && p.seat > 0) { p.seat = Math.max(0, p.seat - dt / 0.7); p.speed = 0; return; } // stand up first
+  if (g === "away" && p.in && !p.leaving) { p.path = [{ x: 0.8, z: 0.78 }, EXIT]; p.leaving = true; }
+  if (g !== "away") p.leaving = false;
+  if (g === "sit" && !p.toChair && !wantSeat) { p.path = [CHAIR]; p.toChair = true; }
+  if (g !== "sit") p.toChair = false;
+  if (g === "wander" && p.path.length === 0) {
+    let i; do { i = Math.floor(rnd() * WANDER.length); } while (i === p.lastW);
+    p.lastW = i; p.path.push(WANDER[i]);
+  }
+  if (wantSeat) { p.seat = Math.min(1, p.seat + dt / 0.7); p.speed = 0; return; }
+  if (p.path.length) {
+    const t = p.path[0], dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz), v = 0.36;
+    if (d < 0.02) { p.path.shift(); if (g === "away" && !p.path.length) { p.in = false; p.leaving = false; } if (g === "sit" && !p.path.length) p.toChair = false; }
+    else { const s = Math.min(v * dt, d); p.x += dx / d * s; p.z += dz / d * s; p.speed = v; p.phase += dt * 7.5; if (Math.abs(dx) > 0.01) p.facing = Math.sign(dx); }
+  } else p.speed = 0;
+}
+
+/* RSSI model: body near the direct path shadows it (level drop), motion near
+   it makes the multipath fluctuate (variance), breathing adds a tiny ripple. */
+let simT = 0;
+function simRSSI(t) {
+  let v = -52 + 0.4 * Math.sin(2 * Math.PI * t / 47) + gauss() * 0.55;
+  if (rnd() < 0.004) v += (rnd() < 0.5 ? -1 : 1) * (6 + rnd() * 5);          // driver spike
+  const p = person;
+  if (p.in) {
+    const near = Math.exp(-((distToLink(p.x, p.z) / 0.26) ** 2));
+    const mv = Math.min(p.speed / 0.3, 1);
+    v -= 6.2 * near * (1 - 0.2 * p.seat);
+    v += mv * (gauss() * (0.7 + 2.8 * near) + 2.4 * near * Math.sin(t * 5.5));
+    v += (1 - mv) * 0.35 * near * Math.sin(2 * Math.PI * 0.26 * t);
+  }
+  return v;
+}
+
+/* Auto scenario (loops): empty -> walk in -> sit -> walk -> leave */
+const SCRIPT = [["away", 7], ["wander", 10], ["sit", 9], ["wander", 4]];
+let auto = !LIVE, autoI = 0, autoT = 0;
+function updateAuto(dt) {
+  if (!auto || !det.armed) return;
+  autoT += dt;
+  if (autoT >= SCRIPT[autoI][1]) { autoI = (autoI + 1) % SCRIPT.length; autoT = 0; }
+  person.goal = SCRIPT[autoI][0];
+}
+
+/* ============================================================
+   App state, events, light
+   ============================================================ */
+const det = new Detector();
+const hist = [];                // { t, v, s }
+const HIST_S = 24;
+let uiState = "CALIBRATING", candState = null, candSince = 0, light = false, lightTimer = null, clock = 0;
+let live = { phase: "init", msg: "Connecting to the board…" };
+
+const $ = (id) => document.getElementById(id);
+const COLORS = { EMPTY: "#35e0ff", MOTION: "#ff5a4e", STILL: "#ffb547", CALIBRATING: "#7b88ff", SYS: "#7d89aa" };
+const DESC = { EMPTY: "No one in the room", MOTION: "Someone is moving", STILL: "Someone is here, sitting still", CALIBRATING: "Learning the empty-room baseline" };
+const fmtT = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+function log(kind, html) {
+  const li = document.createElement("li");
+  li.innerHTML = `<time>${fmtT(clock)}</time><i style="background:${COLORS[kind]};box-shadow:0 0 8px ${COLORS[kind]}"></i><span>${html}</span>`;
+  const ul = $("log"); ul.prepend(li);
+  while (ul.children.length > 9) ul.lastChild.remove();
+}
+function setLight(on) {
+  if (on === light) return; light = on;
+  $("action").classList.toggle("on", on);
+  $("actT").textContent = `Room light · ${on ? "ON" : "OFF"}`;
+  if (LIVE) { $("actS").textContent = "Preview · relay control lives in rssi/decision_engine.py"; return; }
+  $("actS").textContent = `MCU (STM32U585) · set_relay(${on ? 1 : 0})`;
+  log("SYS", `Decision → MCU <code>set_relay(${on ? 1 : 0})</code> · light ${on ? "on" : "off"}`);
+}
+function schedule(fn, s) { clearTimeout(lightTimer); lightTimer = { fn, at: clock + s }; }
+
+function classify() {
+  if (LIVE) {
+    if (live.phase !== "ready") return "CALIBRATING";
+    if (!live.presence) return "EMPTY";
+    return live.ratio > (live.threshold || 3) ? "MOTION" : "STILL";
+  }
+  if (!det.armed) return "CALIBRATING";
+  if (!det.presence) return "EMPTY";
+  return det.f.mfrac >= 0.35 ? "MOTION" : "STILL";
+}
+
+function onStateChange(prev, next) {
+  document.body.dataset.state = next;
+  $("stateBig").textContent = next === "STILL" ? "PRESENCE" : next === "MOTION" ? "MOTION" : next;
+  $("stateDesc").textContent = DESC[next];
+  const L = LIVE ? { ld: live.level_dev || 0 } : det.f;
+  if (prev === "CALIBRATING" && next !== "CALIBRATING") {
+    const bl = LIVE ? live.base_level : det.baseLevel, th = LIVE ? live.threshold : det.th;
+    log("CALIBRATING", `Calibrated${bl != null ? ` · baseline <code>${bl.toFixed(1)} dBm</code>` : ""} · auto threshold <code>${(+th).toFixed(2)}×</code>`);
+  }
+  if (next === "EMPTY" && prev !== "CALIBRATING") { log("EMPTY", "Room is empty again"); schedule(() => setLight(false), 1.6); }
+  if ((next === "MOTION" || next === "STILL") && prev !== "MOTION" && prev !== "STILL") {
+    log(next, next === "MOTION" ? "Presence detected · <b>moving</b>" : "Presence detected · <b>still</b>");
+    schedule(() => setLight(true), 0.35);
+  } else if (next === "STILL" && prev === "MOTION") log("STILL", `Person stopped moving · level shift <code>${L.ld.toFixed(1)} dB</code>`);
+  else if (next === "MOTION" && prev === "STILL") log("MOTION", "Movement again");
+}
+
+/* ============================================================
+   Simulation tick (20 Hz)
+   ============================================================ */
+const RATE = 20, DT = 1 / RATE;
+let acc = 0;
+function tick() {
+  simT += DT; clock += DT;
+  updateAuto(DT);
+  if (!det.armed) person.goal = "away";
+  updatePerson(DT);
+  det.push(simRSSI(simT), DT);
+  hist.push({ t: clock, v: det.v, s: uiState });
+  while (hist.length && hist[0].t < clock - HIST_S) hist.shift();
+  afterSample();
+}
+function afterSample() {
+  const s = classify();
+  if (s !== uiState) {
+    if (s !== candState) { candState = s; candSince = clock; }
+    const need = (uiState === "MOTION" && s === "STILL") || (uiState === "STILL" && s === "MOTION") ? 0.7 : 0;
+    if (clock - candSince >= need) { const prev = uiState; uiState = s; onStateChange(prev, s); }
+  } else candState = null;
+  if (lightTimer && clock >= lightTimer.at) { const f = lightTimer.fn; lightTimer = null; f(); }
+}
+
+/* ============================================================
+   Live mode: Python backend (rssi/rssi_demo.py) via Server-Sent Events
+   ============================================================ */
+if (LIVE) {
+  $("srcLabel").textContent = "Live · Wi-Fi RSSI";
+  $("controls").style.display = "none";
+  $("sceneNote").textContent = "Single link · position not estimated";
+  $("footNote").innerHTML = "<b>Live data.</b> RSSI read from the board's own Wi-Fi radio; detection by <code>rssi/rssi_demo.py</code>.";
+  const es = new EventSource("stream");
+  es.onmessage = (e) => {
+    try { live = JSON.parse(e.data); } catch { return; }
+    clock = performance.now() / 1000 - t0;
+    if (live.phase === "ready" && live.rssi < 0) {   // rssi is 0 until the first window is full
+      hist.push({ t: clock, v: live.rssi, s: uiState });
+      while (hist.length && hist[0].t < clock - HIST_S) hist.shift();
+    }
+    person.in = live.phase === "ready" && !!live.presence;
+    person.speed = person.in && live.ratio > (live.threshold || 3) ? 0.3 : 0;
+    Object.assign(person, { x: 0.02, z: LINK_Z + 0.03, seat: 0 });
+    afterSample();
+  };
+  es.onerror = () => { live = { phase: "init", msg: "Connection lost, retrying…" }; };
+}
+const t0 = performance.now() / 1000;
+
+/* ============================================================
+   Rendering: room scene
+   ============================================================ */
+const sc = $("scene"), sctx = sc.getContext("2d");
+const ch = $("chart"), cctx = ch.getContext("2d");
+const boardImg = new Image(); boardImg.src = "assets/uno-q.png";
+let dpr = 1;
+function fit(c) { const r = c.getBoundingClientRect(); dpr = Math.min(window.devicePixelRatio || 1, 2); const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } }
+
+const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+let colNow = hex2rgb(COLORS.CALIBRATING);
+const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+
+function drawScene(time, dt) {
+  fit(sc);
+  const W = sc.width, H = sc.height, c = sctx, cx = W / 2;
+  const target = hex2rgb(COLORS[uiState]);
+  const kc = 1 - Math.exp(-dt * 5);
+  colNow = colNow.map((v, i) => v + (target[i] - v) * kc);
+  const C = colNow, Ux = Math.min(W * 0.8, H * 1.9), Uy = Math.min(H * 0.98, W * 0.62);
+  const horizon = H * 0.2;
+  const P = (x, y, z) => { const D = 1 + z * 1.6; return { x: cx + x * Ux / D, y: horizon + (H * 0.95 - horizon) / D - y * Uy / D, k: Uy / D }; };
+
+  c.clearRect(0, 0, W, H);
+  if (!CAPTURE) {  // soft glow; skipped when recording GIFs (it bands badly in 256 colours)
+    const g = c.createRadialGradient(cx, horizon + H * 0.1, 0, cx, horizon + H * 0.1, H * 0.95);
+    g.addColorStop(0, rgba(C, 0.13)); g.addColorStop(1, "rgba(5,7,15,0)");
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+  }
+
+  // floor grid
+  c.lineWidth = dpr;
+  for (let x = -1.6; x <= 1.601; x += 0.2) { const a = P(x, 0, 0), b = P(x, 0, 1); c.strokeStyle = rgba(C, 0.10); c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); }
+  for (let z = 0; z <= 1.001; z += 0.1) { const a = P(-1.6, 0, z), b = P(1.6, 0, z); c.strokeStyle = rgba(C, 0.05 + 0.07 * (1 - z)); c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); }
+  // back wall
+  const bw1 = P(-1.6, 0, 1), bw2 = P(1.6, 0, 1), bw3 = P(1.6, 0.9, 1), bw4 = P(-1.6, 0.9, 1);
+  if (!CAPTURE) { c.fillStyle = rgba(C, 0.025); c.beginPath(); c.moveTo(bw1.x, bw1.y); c.lineTo(bw2.x, bw2.y); c.lineTo(bw3.x, bw3.y); c.lineTo(bw4.x, bw4.y); c.fill(); }
+
+  // Fresnel zone footprint on the floor
+  const armed = uiState !== "CALIBRATING", hot = uiState === "MOTION" || uiState === "STILL";
+  c.beginPath();
+  for (let i = 0; i <= 60; i++) { const t = i / 60, q = P(AP.x + (BOARD.x - AP.x) * t, 0, LINK_Z - 0.13 * Math.sin(Math.PI * t)); i ? c.lineTo(q.x, q.y) : c.moveTo(q.x, q.y); }
+  for (let i = 60; i >= 0; i--) { const t = i / 60, q = P(AP.x + (BOARD.x - AP.x) * t, 0, LINK_Z + 0.13 * Math.sin(Math.PI * t)); c.lineTo(q.x, q.y); }
+  c.fillStyle = rgba(C, hot ? 0.14 : 0.06); c.fill();
+  c.strokeStyle = rgba(C, 0.25); c.setLineDash([4 * dpr, 5 * dpr]); c.stroke(); c.setLineDash([]);
+
+  // ripples from the access point
+  for (let i = 0; i < 4; i++) {
+    const ph = ((time * 0.45 + i / 4) % 1), r = 0.05 + ph * 0.55, o = P(AP.x, 0, AP.z);
+    c.strokeStyle = rgba(C, 0.35 * (1 - ph)); c.lineWidth = 1.2 * dpr;
+    c.beginPath(); c.ellipse(o.x, o.y, r * o.k, r * o.k * 0.32, 0, 0, Math.PI * 2); c.stroke();
+  }
+
+  const pBehind = person.in && person.z > LINK_Z + 0.02;
+  if (person.in && pBehind) drawPerson(c, P, C);
+  drawLink(c, P, C, time, hot);
+  drawDevices(c, P, C);
+  if (person.in && !pBehind) drawPerson(c, P, C);
+}
+
+function drawLink(c, P, C, time, hot) {
+  const dist = LIVE ? Math.min((live.ratio || 0) / 4, 1.5) : Math.min(det.f.ratio / 4, 1.5);
+  const px = person.in ? (person.x - AP.x) / (BOARD.x - AP.x) : -9;
+  const near = person.in ? Math.exp(-((distToLink(person.x, person.z) / 0.26) ** 2)) : 0;
+  for (let j = 0; j < 5; j++) {
+    const o = (j - 2) / 2;
+    c.beginPath();
+    for (let i = 0; i <= 80; i++) {
+      const t = i / 80, env = Math.sin(Math.PI * t);
+      const bump = Math.exp(-(((t - px) / 0.14) ** 2)) * near * (0.4 + dist);
+      const y = DEV_H + 0.02 + o * 0.075 * env + 0.012 * Math.sin(2 * Math.PI * (3 * t - time * 0.9 + j * 0.17)) * env
+                + bump * 0.07 * Math.sin(time * 11 + t * 26 + j);
+      const q = P(AP.x + (BOARD.x - AP.x) * t, y, LINK_Z + o * 0.05 * env);
+      i ? c.lineTo(q.x, q.y) : c.moveTo(q.x, q.y);
+    }
+    c.strokeStyle = rgba(C, j === 2 ? 0.85 : 0.32); c.lineWidth = (j === 2 ? 1.8 : 1.1) * dpr;
+    c.shadowColor = rgba(C, 0.8); c.shadowBlur = (hot ? 14 : 8) * dpr; c.stroke(); c.shadowBlur = 0;
+  }
+  // packets travelling AP -> board
+  for (let i = 0; i < 7; i++) {
+    const t = (time * 0.35 + i / 7) % 1, q = P(AP.x + (BOARD.x - AP.x) * t, DEV_H + 0.02, LINK_Z);
+    c.fillStyle = rgba([255, 255, 255], 0.85 * Math.sin(Math.PI * t)); c.beginPath(); c.arc(q.x, q.y, 1.8 * dpr, 0, Math.PI * 2); c.fill();
+  }
+}
+
+function pedestal(c, P, C, d) {
+  const b = P(d.x, 0, d.z), t = P(d.x, DEV_H - 0.03, d.z);
+  c.strokeStyle = rgba(C, 0.55); c.lineWidth = 1.4 * dpr; c.beginPath(); c.moveTo(b.x, b.y); c.lineTo(t.x, t.y); c.stroke();
+  c.strokeStyle = rgba(C, 0.4); c.beginPath(); c.ellipse(b.x, b.y, 0.06 * b.k, 0.02 * b.k, 0, 0, Math.PI * 2); c.stroke();
+  return { b, t };
+}
+function label(c, x, y, txt, C) {
+  c.font = `600 ${11 * dpr}px "JetBrains Mono", monospace`; c.textAlign = "center"; c.fillStyle = rgba([232, 237, 255], 0.75);
+  c.fillText(txt, x, y);
+}
+function drawDevices(c, P, C) {
+  // access point (phone hotspot)
+  const a = pedestal(c, P, C, AP), k = a.t.k, pw = 0.045 * k, ph = 0.085 * k;
+  c.fillStyle = "#0e1528"; c.strokeStyle = rgba(C, 0.9); c.lineWidth = 1.5 * dpr;
+  c.beginPath(); c.roundRect(a.t.x - pw / 2, a.t.y - ph, pw, ph, 5 * dpr); c.fill(); c.stroke();
+  for (let i = 1; i <= 3; i++) { c.strokeStyle = rgba(C, 0.9 - i * 0.2); c.beginPath(); c.arc(a.t.x, a.t.y - ph - 0.004 * k, i * 0.024 * k, -Math.PI * 0.78, -Math.PI * 0.22); c.stroke(); }
+  label(c, a.b.x, a.b.y + 20 * dpr, "WI-FI ACCESS POINT", C);
+  // Arduino UNO Q
+  const b = pedestal(c, P, C, BOARD), bw = 0.27 * b.t.k;
+  if (boardImg.complete && boardImg.naturalWidth) {
+    const bh = bw * boardImg.naturalHeight / boardImg.naturalWidth;
+    c.shadowColor = rgba(C, 0.7); c.shadowBlur = 18 * dpr;
+    c.drawImage(boardImg, b.t.x - bw / 2, b.t.y - bh * 0.8, bw, bh); c.shadowBlur = 0;
+  } else { c.fillStyle = "#3a4bff"; c.fillRect(b.t.x - bw / 2, b.t.y - bw * 0.6, bw, bw * 0.6); }
+  label(c, b.b.x, b.b.y + 20 * dpr, "ARDUINO UNO Q", C);
+}
+
+function drawPerson(c, P, C) {
+  const p = person, s = p.seat, walk = p.speed > 0 ? Math.sin(p.phase) : 0;
+  const base = P(p.x, 0, p.z), k = base.k;
+  // floor glow
+  const fg = c.createRadialGradient(base.x, base.y, 0, base.x, base.y, 0.16 * k);
+  fg.addColorStop(0, rgba(C, 0.45)); fg.addColorStop(1, rgba(C, 0));
+  c.fillStyle = fg; c.beginPath(); c.ellipse(base.x, base.y, 0.16 * k, 0.05 * k, 0, 0, Math.PI * 2); c.fill();
+
+  const bob = p.speed > 0 ? Math.abs(Math.sin(p.phase)) * 0.01 : 0;
+  const hip = 0.33 - 0.1 * s + bob, sh = 0.54 - 0.1 * s + bob, head = 0.61 - 0.1 * s + bob;
+  const pt = (dx, y, dz = 0) => P(p.x + dx, y, p.z + dz);
+  c.lineCap = "round"; c.lineJoin = "round";
+  c.shadowColor = rgba(C, 0.9); c.shadowBlur = 16 * dpr;
+  c.strokeStyle = rgba([235, 242, 255], 0.92);
+  // legs
+  const legs = (side) => {
+    c.lineWidth = 0.028 * k; c.beginPath();
+    const h = pt(side * 0.018, hip);
+    if (s > 0.5) { const knee = pt(side * 0.02 + 0.07 * p.facing * s, hip - 0.01, -0.04 * s), foot = pt(side * 0.02 + 0.07 * p.facing * s, 0.01, -0.04 * s); c.moveTo(h.x, h.y); c.lineTo(knee.x, knee.y); c.lineTo(foot.x, foot.y); }
+    else { const sw = side * walk * 0.05, knee = pt(side * 0.016 + sw * 0.5, hip * 0.5 + 0.01), foot = pt(side * 0.016 + sw, 0.01); c.moveTo(h.x, h.y); c.lineTo(knee.x, knee.y); c.lineTo(foot.x, foot.y); }
+    c.stroke();
+  };
+  legs(-1); legs(1);
+  // torso
+  const h1 = pt(0, hip), s1 = pt(0, sh);
+  c.lineWidth = 0.075 * k; c.beginPath(); c.moveTo(h1.x, h1.y); c.lineTo(s1.x, s1.y); c.stroke();
+  // arms
+  c.lineWidth = 0.022 * k;
+  for (const side of [-1, 1]) { const a0 = pt(side * 0.045, sh - 0.01), sw = -side * walk * 0.04, a1 = pt(side * 0.06 + sw, sh - 0.12), a2 = pt(side * 0.06 + sw * 1.4 + (s > 0.5 ? 0.04 * p.facing : 0), sh - 0.22 + 0.04 * s); c.beginPath(); c.moveTo(a0.x, a0.y); c.lineTo(a1.x, a1.y); c.lineTo(a2.x, a2.y); c.stroke(); }
+  // head
+  const hd = pt(0, head); c.fillStyle = rgba([235, 242, 255], 0.95);
+  c.beginPath(); c.arc(hd.x, hd.y, 0.034 * k, 0, Math.PI * 2); c.fill();
+  c.shadowBlur = 0;
+  // seat
+  if (s > 0) { const s0 = pt(-0.07, 0.2, 0.02), s1b = pt(0.07, 0.2, 0.02); c.strokeStyle = rgba(C, 0.6 * s); c.lineWidth = 2 * dpr; c.beginPath(); c.moveTo(s0.x, s0.y); c.lineTo(s1b.x, s1b.y); c.stroke(); for (const dx of [-0.06, 0.06]) { const l0 = pt(dx, 0.2, 0.02), l1 = pt(dx, 0, 0.02); c.beginPath(); c.moveTo(l0.x, l0.y); c.lineTo(l1.x, l1.y); c.stroke(); } }
+}
+
+/* ============================================================
+   Rendering: RSSI chart
+   ============================================================ */
+function drawChart() {
+  fit(ch);
+  const W = ch.width, H = ch.height, c = cctx, padL = 44 * dpr, padB = 16 * dpr, padT = 6 * dpr;
+  c.clearRect(0, 0, W, H);
+  const base = LIVE ? (live.phase === "ready" && live.base_level != null ? live.base_level : null) : (det.phase === "ready" ? det.baseLevel : null);
+  const band = LIVE ? (live.level_th || 3.5) : det.levelDb;
+  const vals = hist.map((h) => h.v).filter((v) => v != null && isFinite(v));
+  let lo, hi;
+  if (base != null) { lo = base - 11; hi = base + 5; }
+  else if (vals.length) { lo = Math.min(...vals) - 3; hi = Math.max(...vals) + 3; }
+  else { lo = -65; hi = -45; }
+  const X = (t) => padL + (W - padL - 6 * dpr) * (1 - (clock - t) / HIST_S), Y = (v) => padT + (H - padT - padB) * (1 - (v - lo) / (hi - lo));
+  // state bands
+  for (let i = 1; i < hist.length; i++) { const s = hist[i].s; if (s === "CALIBRATING") continue; c.fillStyle = rgba(hex2rgb(COLORS[s]), s === "EMPTY" ? 0.035 : 0.12); c.fillRect(X(hist[i - 1].t), padT, X(hist[i].t) - X(hist[i - 1].t) + 0.5, H - padT - padB); }
+  // grid + labels
+  c.font = `${10 * dpr}px "JetBrains Mono", monospace`; c.fillStyle = "#4a5576"; c.textAlign = "right"; c.textBaseline = "middle";
+  for (let v = Math.ceil(lo / 5) * 5; v <= hi; v += 5) { c.strokeStyle = "rgba(25,34,61,.9)"; c.lineWidth = dpr; c.beginPath(); c.moveTo(padL, Y(v)); c.lineTo(W, Y(v)); c.stroke(); c.fillText(`${v}`, padL - 8 * dpr, Y(v)); }
+  c.textAlign = "left"; c.textBaseline = "alphabetic"; c.fillText("dBm", 2 * dpr, H - 2 * dpr);
+  if (base != null) {
+    c.fillStyle = "rgba(255,181,71,.07)"; c.fillRect(padL, Y(base + band), W - padL, Y(base - band) - Y(base + band));
+    c.strokeStyle = "rgba(125,137,170,.8)"; c.setLineDash([5 * dpr, 5 * dpr]); c.beginPath(); c.moveTo(padL, Y(base)); c.lineTo(W, Y(base)); c.stroke(); c.setLineDash([]);
+  }
+  // signal
+  c.beginPath(); let started = false;
+  for (const h of hist) { if (h.v == null) continue; const x = X(h.t), y = Y(Math.max(lo, Math.min(hi, h.v))); started ? c.lineTo(x, y) : (c.moveTo(x, y), started = true); }
+  c.strokeStyle = "#e8edff"; c.lineWidth = 1.6 * dpr; c.shadowColor = rgba(colNow, 0.9); c.shadowBlur = 8 * dpr; c.stroke(); c.shadowBlur = 0;
+}
+
+/* ============================================================
+   Panels
+   ============================================================ */
+function meter(id, vid, value, th, fmt) {
+  const m = $(id); const hot = value > th;
+  m.classList.toggle("hot", hot);
+  m.querySelector("i").style.width = `${Math.min(value / (th * 2), 1) * 100}%`;
+  $(vid).textContent = fmt(value);
+}
+function updatePanels() {
+  const armed = uiState !== "CALIBRATING";
+  let f, th, ldb, rssi, base;
+  if (LIVE) { f = { rs: live.r_swing || 0, rj: live.r_jitter || 0, ld: live.level_dev || 0, frac: live.presence ? 1 : 0 }; th = live.threshold || 3; ldb = live.level_th || 3.5; rssi = live.rssi; base = live.base_level; $("ratePill").textContent = `${(live.fps || 0).toFixed(0)} Hz`; }
+  else { f = det.f; th = det.th; ldb = det.levelDb; rssi = det.v; base = det.baseLevel; }
+  if (armed) {
+    meter("mSwing", "vSwing", f.rs, th, (v) => `${v.toFixed(1)}×`);
+    meter("mJitter", "vJitter", f.rj, th, (v) => `${v.toFixed(1)}×`);
+    meter("mLevel", "vLevel", f.ld, ldb, (v) => `${v.toFixed(1)} dB`);
+    $("fTh").textContent = `${(+th).toFixed(1)}×`;
+    $("fBase").textContent = base != null ? `${base.toFixed(0)}` : "–";
+    const conf = uiState === "EMPTY" ? 1 - f.frac : f.frac;
+    const shown = 0.5 + 0.5 * Math.max(0, Math.min(1, conf));
+    $("confBar").style.width = `${shown * 100}%`; $("confVal").textContent = `${Math.round(shown * 100)}%`;
+  }
+  $("fRssi").textContent = rssi != null && isFinite(rssi) ? rssi.toFixed(0) : "–";
+  // overlay
+  const ov = $("overlay");
+  if (LIVE) {
+    ov.classList.toggle("hidden", live.phase === "ready");
+    $("ovMsg").textContent = live.msg || "Connecting…"; $("ovSub").textContent = "Keep the area between the board and the access point clear";
+    $("ovBar").style.width = live.phase === "calibrating" ? "60%" : live.phase === "warmup" ? "15%" : "0%";
+  } else {
+    ov.classList.toggle("hidden", armed);
+    const pr = det.phase === "ready" ? 1 : det.progress;
+    $("ovMsg").textContent = det.phase === "warmup" ? "Stay out of the room…" : "Learning the empty room…";
+    $("ovBar").style.width = `${(det.phase === "ready" ? 100 : pr * 92)}%`;
+  }
+}
+
+/* ============================================================
+   Controls
+   ============================================================ */
+document.querySelectorAll("[data-goal]").forEach((b) => b.addEventListener("click", () => {
+  if (!det.armed) return;
+  auto = false; $("autoBtn").setAttribute("aria-pressed", "false"); person.goal = b.dataset.goal;
+}));
+$("autoBtn").addEventListener("click", () => { auto = true; autoI = 0; autoT = 0; $("autoBtn").setAttribute("aria-pressed", "true"); });
+
+/* ============================================================
+   Main loop (or manual clock for recordings)
+   ============================================================ */
+let vis = 0;
+function frame(dt) {
+  if (!LIVE) { acc += Math.min(dt, 0.25); while (acc >= DT) { acc -= DT; tick(); } }
+  vis += dt;
+  drawScene(vis, dt); drawChart(); updatePanels();
+}
+if (CAPTURE) window.__advance = (ms) => frame(ms / 1000);
+else { let last = performance.now(); const loop = (now) => { frame((now - last) / 1000); last = now; requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+</script>
+</body>
+</html>
