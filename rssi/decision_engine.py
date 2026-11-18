@@ -660,7 +660,7 @@ def save_config(path: str, cfg: dict):
     try:
         with open(path, "w") as f:
             json.dump(cfg, f, indent=2)
-        print(f"[✓] Config saved: {path}")
+        print(f"[[OK]] Config saved: {path}")
     except Exception as e:
         print(f"[!] Failed to save config: {e}")
 

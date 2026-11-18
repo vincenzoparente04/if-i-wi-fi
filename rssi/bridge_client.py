@@ -434,9 +434,9 @@ def main():
         ok = client.ping_mcu()
         elapsed = (time.time() - t0) * 1000
         if ok:
-            print(f"  ✅ STM32 risponde ({elapsed:.0f}ms)")
+            print(f"  [OK] STM32 risponde ({elapsed:.0f}ms)")
         else:
-            print(f"  ❌ STM32 non raggiungibile ({elapsed:.0f}ms)")
+            print(f"  [ERROR] STM32 non raggiungibile ({elapsed:.0f}ms)")
             print(f"     Lo sketch e caricato sullo STM32?")
 
     # --- Get sensors ---
@@ -454,7 +454,7 @@ def main():
             else:
                 print(f"  Raw: {result}")
         else:
-            print(f"  ❌ Nessun dato ricevuto")
+            print(f"  [ERROR] Nessun dato ricevuto")
 
     # --- Set relay ---
     elif args.set_relay is not None:
@@ -462,9 +462,9 @@ def main():
         print(f"\n  --- Set Relay {'ON' if state else 'OFF'} ---")
         result = client.set_relay(state)
         if result is not None:
-            print(f"  ✅ Relay: {'ON' if result else 'OFF'}")
+            print(f"  [OK] Relay: {'ON' if result else 'OFF'}")
         else:
-            print(f"  ❌ Comando fallito")
+            print(f"  [ERROR] Comando fallito")
 
     # --- Test UART D0/D1 ---
     elif args.test_uart:
@@ -474,16 +474,16 @@ def main():
         if result is not None:
             result_str = str(result)
             if result_str == "LOOPBACK_OK":
-                print(f"  ✅ Loopback OK — D0/D1 UART funziona (cortocircuita con jumper)")
+                print(f"  [OK] Loopback OK — D0/D1 UART funziona (cortocircuita con jumper)")
             elif result_str == "ESP32_OK":
-                print(f"  ✅ ESP32 risponde su D0/D1")
+                print(f"  [OK] ESP32 risponde su D0/D1")
             elif result_str.startswith("FAIL"):
-                print(f"  ❌ {result_str}")
+                print(f"  [ERROR] {result_str}")
                 print(f"     D0-D1 sono cortocircuitati (jumper)? O ESP32 accesa?")
             else:
-                print(f"  ⚠️  Risposta inattesa: {result_str}")
+                print(f"  [WARN]  Risposta inattesa: {result_str}")
         else:
-            print(f"  ❌ STM32 non raggiungibile o test_uart non registrato")
+            print(f"  [ERROR] STM32 non raggiungibile o test_uart non registrato")
             print(f"     Lo sketch modificato e caricato sullo STM32?")
 
     # --- Monitor scan ---
@@ -491,7 +491,7 @@ def main():
         print("\n  --- Scansione Monitor TCP ---")
         port = scan_monitor_port()
         if port:
-            print(f"  ✅ Monitor trovato su 127.0.0.1:{port}")
+            print(f"  [OK] Monitor trovato su 127.0.0.1:{port}")
         else:
             print(f"  Monitor TCP non rilevato. Porta default: {MONITOR_PORT}")
             print(f"  Prova: python3 bridge_client.py --monitor")

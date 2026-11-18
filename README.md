@@ -31,7 +31,7 @@
 
 ---
 
-## 🌍 Why this exists
+##  Why this exists
 
 Buildings are **over-sensored and under-aware**. We fill them with cameras,
 motion sensors and smart devices, yet most rooms still cannot answer a simple
@@ -51,17 +51,17 @@ privacy-preserving sense of presence**, running on a €100-class board at the e
 
 ## 🆚 Wi-Fi sensing vs. the usual suspects
 
-| | 📷 Camera | 🚶 PIR sensor | ⌚ Wearable | 📡 **If-I-Wi-Fi** |
+| |  Camera |  PIR sensor | ⌚ Wearable |  **If-I-Wi-Fi** |
 | --- | :---: | :---: | :---: | :---: |
-| Notices someone sitting still | ✅ | ❌ | ✅ | ✅ near the link |
-| Works in the dark | ⚠️ needs IR | ✅ | ✅ | ✅ |
+| Notices someone sitting still | [OK] | [ERROR] | [OK] | [OK] near the link |
+| Works in the dark | [WARN] needs IR | [OK] | [OK] | [OK] |
 | Needs people to cooperate | no | no | **yes** | no |
 | Captures images or identity | **yes** | no | **yes** | no |
-| Acceptable in bathrooms and bedrooms | ❌ | ✅ | ✅ | ✅ |
+| Acceptable in bathrooms and bedrooms | [ERROR] | [OK] | [OK] | [OK] |
 | New hardware | one per room | one per room | one per person | the existing AP + one board |
 | Knows *where* you are | precise | zone | with infrastructure | coarse, with an ESP32 mesh |
 
-## 📡 How it works
+##  How it works
 
 <p align="center"><img src="media/how-it-works.png" alt="Acquire, extract, infer, act" width="100%"></p>
 
@@ -78,7 +78,7 @@ privacy-preserving sense of presence**, running on a €100-class board at the e
 The full algorithm, the physics and the honest limits are in
 [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md).
 
-## 🏗️ Architecture
+##  Architecture
 
 <p align="center"><img src="media/architecture.png" alt="Pipeline 1: Wi-Fi AP to Arduino UNO Q (Linux MPU and STM32 MCU) to dashboard and relay. Pipeline 2: three ESP32 nodes to the host pipeline to the 3D monitor and Home Assistant." width="100%"></p>
 
@@ -93,7 +93,7 @@ second and report the full channel of six radio paths crossing the room. A
 host pipeline turns that into presence, 2D position and experimental vital
 signs, streamed to a 3D web monitor. → [`csi/`](csi), [`firmware/esp32-radar3d`](firmware/esp32-radar3d), [`web/`](web)
 
-## 🎬 Demo
+##  Demo
 
 | RSSI dashboard ([`demo/`](demo)) | CSI 3D monitor ([`web/`](web)) |
 | :---: | :---: |
@@ -104,7 +104,7 @@ We no longer have the UNO Q we built this on (it was on loan for the
 hackathon), so the demo is designed to run without it. The detector is the
 one we used on stage; only the room is simulated.
 
-## ⚡ Quick start
+##  Quick start
 
 ```bash
 git clone https://github.com/vincenzoparente04/if-i-wi-fi.git && cd if-i-wi-fi
@@ -125,7 +125,7 @@ pytest                              # 123 tests
 Have the hardware? Start from [`rssi/README.md`](rssi/README.md) for the UNO Q
 and [`firmware/esp32-radar3d`](firmware/esp32-radar3d) for the ESP32 mesh.
 
-## 🎯 Where it matters
+##  Where it matters
 
 <table>
   <tr>
@@ -148,7 +148,7 @@ from it.* A bathroom occupied for 45 minutes, an office busy at 3 a.m., a
 tenant who has not moved between rooms all day. Adding a new application
 means relabelling data, not rebuilding the stack. More in [the vision](docs/VISION.md).
 
-## 🔒 Privacy by design
+##  Privacy by design
 
 - **No images, no audio, no identities.** The only input is how a radio link
   behaves; there is nothing to recognise a face or a voice from.
@@ -157,25 +157,25 @@ means relabelling data, not rebuilding the stack. More in [the vision](docs/VISI
 - **Minimal data.** The detector keeps a few seconds of numbers in memory to
   make a decision, not recordings.
 
-## 🔬 Status
+##  Status
 
 This is a hackathon project that grew. Here is what is real:
 
 | Component | Status |
 | --- | --- |
-| RSSI detector on the Arduino UNO Q ([`rssi/rssi_demo.py`](rssi/rssi_demo.py)) | ✅ ran live on the UNO Q (May–June 2026) |
-| UNO Q MCU bridge and relay control ([`firmware/uno-q-bridge`](firmware/uno-q-bridge), [`rssi/decision_engine.py`](rssi/decision_engine.py)) | ✅ tested on the UNO Q |
-| Same detector on a Mac's Wi-Fi (`--source macos`) | ✅ verified September 2026 |
-| Web demo ([`demo/`](demo)) | ✅ runs anywhere; simulated room, real detector |
-| ESP32 cross-ping mesh ([`firmware/esp32-radar3d`](firmware/esp32-radar3d)) | ✅ used by the team; later robustness patches not re-verified on boards |
-| CSI host: presence and 2D position ([`csi/`](csi)) | ✅ 123 unit tests · ✅ end to end with simulated frames · ✅ team hardware sessions |
-| ML position regressor | ⚠️ works, needs ~5 minutes of labelled data per room |
-| Height class, breathing, heart rate, fall detection | 🧪 experimental, not validated, **not medical** |
-| ESP-IDF single node ([`firmware/esp32-csi-node`](firmware/esp32-csi-node)) | 🧪 ported from RuView, not re-verified |
-| Rust host ([`experimental/host-rust`](experimental/host-rust)) | 🧪 never compiled in this repo |
-| CSI host running on the UNO Q | 🗺️ next step |
+| RSSI detector on the Arduino UNO Q ([`rssi/rssi_demo.py`](rssi/rssi_demo.py)) | [OK] ran live on the UNO Q (May–June 2026) |
+| UNO Q MCU bridge and relay control ([`firmware/uno-q-bridge`](firmware/uno-q-bridge), [`rssi/decision_engine.py`](rssi/decision_engine.py)) | [OK] tested on the UNO Q |
+| Same detector on a Mac's Wi-Fi (`--source macos`) | [OK] verified September 2026 |
+| Web demo ([`demo/`](demo)) | [OK] runs anywhere; simulated room, real detector |
+| ESP32 cross-ping mesh ([`firmware/esp32-radar3d`](firmware/esp32-radar3d)) | [OK] used by the team; later robustness patches not re-verified on boards |
+| CSI host: presence and 2D position ([`csi/`](csi)) | [OK] 123 unit tests · [OK] end to end with simulated frames · [OK] team hardware sessions |
+| ML position regressor | [WARN] works, needs ~5 minutes of labelled data per room |
+| Height class, breathing, heart rate, fall detection |  experimental, not validated, **not medical** |
+| ESP-IDF single node ([`firmware/esp32-csi-node`](firmware/esp32-csi-node)) |  ported from RuView, not re-verified |
+| Rust host ([`experimental/host-rust`](experimental/host-rust)) |  never compiled in this repo |
+| CSI host running on the UNO Q |  next step |
 
-## 🗺️ Roadmap
+##  Roadmap
 
 - [ ] Run the CSI host on the UNO Q: the mesh and the board in one box
 - [ ] Anomaly detection on long-term occupancy ("learn normal, flag the unusual")
@@ -183,7 +183,7 @@ This is a hackathon project that grew. Here is what is real:
 - [ ] Home Assistant integration, end to end
 - [ ] Counting more than one person
 
-## 📁 Repository layout
+##  Repository layout
 
 ```
 if-i-wi-fi/
@@ -202,7 +202,7 @@ if-i-wi-fi/
 └── media/                images and their sources (media/src/)
 ```
 
-## 👥 Team
+##  Team
 
 Built by three students at **Politecnico di Milano**:
 
@@ -212,7 +212,7 @@ Built by three students at **Politecnico di Milano**:
 | **Vincenzo Parente** | [@vincenzoparente04](https://github.com/vincenzoparente04) |
 | **Pierluca Primiceri** | [@Pierluca-Primi](https://github.com/Pierluca-Primi) |
 
-## 🙏 Acknowledgements
+##  Acknowledgements
 
 - **Arduino, NECSTLab and Politecnico di Milano**, for the hackathon and for
   putting an Arduino UNO Q in our hands.
@@ -225,7 +225,7 @@ Built by three students at **Politecnico di Milano**:
   ESP32 firmware.
 - **Espressif**, for exposing CSI on a chip that costs a few euros.
 
-## 📄 License
+##  License
 
 Dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at
 your option. See [LICENSE](LICENSE) for the parts derived from RuView.

@@ -26,13 +26,13 @@ Output tipico (situazione SANA):
     │ RX2 │ 98.7 fps    │ 98.3 fps    │ --- (self)  │
     │     │ var=7.6     │ var=8.1     │             │
     └─────┴─────────────┴─────────────┴─────────────┘
-    6 paths attivi (3 diagonali filtrate in firmware) · ✅ SETUP OK
+    6 paths attivi (3 diagonali filtrate in firmware) · [OK] SETUP OK
 
 Output tipico (situazione ROTTA — TX1 non riconosciuto):
     │ RX0 │ --- (self)  │ ---         │ 97.8 fps    │
     │ RX1 │ 99.5 fps    │ --- (self)  │ 98.9 fps    │
     │ RX2 │ 98.7 fps    │ ---         │ --- (self)  │
-    4 paths attivi (su 6 attesi) · ⚠ TX1 NON VISIBILE.
+    4 paths attivi (su 6 attesi) · [WARN] TX1 NON VISIBILE.
     Probabili cause:
       - L'ESP32 con NODE_ID=1 non sta trasmettendo (controlla Serial Monitor)
       - NODE_MACS[1] in network_config.h non è il vero MAC del chip NODE_ID=1
@@ -212,7 +212,7 @@ def diagnose(report: dict, n_nodes: int = 3) -> tuple[int, list[str]]:
     elapsed = report["elapsed"]
 
     if not counts:
-        msgs.append("✗ NESSUN FRAME radar3d/crossping ricevuto.")
+        msgs.append("[ERROR] NESSUN FRAME radar3d/crossping ricevuto.")
         if report["other_macs"]:
             msgs.append(f"  (Visti {sum(report['other_macs'].values())} frame in formato testo legacy)")
         if report["unknown_magics"]:
@@ -227,7 +227,7 @@ def diagnose(report: dict, n_nodes: int = 3) -> tuple[int, list[str]]:
     active = sum(1 for tx in range(n_nodes) for rx in range(n_nodes)
                  if counts.get((tx, rx), 0) >= elapsed * 5)  # almeno 5 fps
     expected = n_nodes * n_nodes
-    msgs.append(f"📊 {active}/{expected} percorsi attivi (>= 5 fps).")
+    msgs.append(f" {active}/{expected} percorsi attivi (>= 5 fps).")
 
     # TX o RX mancanti?
     tx_active = [tx for tx in range(n_nodes)
@@ -240,7 +240,7 @@ def diagnose(report: dict, n_nodes: int = 3) -> tuple[int, list[str]]:
 
     if missing_tx:
         for tx in missing_tx:
-            msgs.append(f"⚠  TX{tx} NON VISIBILE (nessun nodo riceve i suoi ping).")
+            msgs.append(f"[WARN]  TX{tx} NON VISIBILE (nessun nodo riceve i suoi ping).")
             msgs.append(f"    Cause più probabili:")
             msgs.append(f"      a) L'ESP32 con NODE_ID={tx} non sta trasmettendo")
             msgs.append(f"         → controlla il Serial Monitor: vedi '[{tx}] TX:xxxx CSI:yyyy' ogni 5s?")
@@ -251,7 +251,7 @@ def diagnose(report: dict, n_nodes: int = 3) -> tuple[int, list[str]]:
 
     if missing_rx:
         for rx in missing_rx:
-            msgs.append(f"⚠  RX{rx} NON RICEVE (nessun ping arriva da quel nodo).")
+            msgs.append(f"[WARN]  RX{rx} NON RICEVE (nessun ping arriva da quel nodo).")
             msgs.append(f"    Cause più probabili:")
             msgs.append(f"      a) L'ESP32 con NODE_ID={rx} non sta inviando UDP")
             msgs.append(f"         → forse non è connesso al WiFi (verifica Serial Monitor)")
@@ -267,18 +267,18 @@ def diagnose(report: dict, n_nodes: int = 3) -> tuple[int, list[str]]:
             var_per_rx[rx] = statistics.pvariance(ampls)
 
     if var_per_rx and max(var_per_rx.values()) < 0.01:
-        msgs.append("⚠  VARIANZA QUASI ZERO su tutti i RX — il CSI sembra costante.")
+        msgs.append("[WARN]  VARIANZA QUASI ZERO su tutti i RX — il CSI sembra costante.")
         msgs.append("    Tipicamente significa che i frame sono identici (frame finti?)")
         msgs.append("    o che il driver CSI dell'ESP32 non sta producendo dati reali.")
 
     if active == expected:
-        msgs.append("✅ SETUP HARDWARE OK.")
+        msgs.append("[OK] SETUP HARDWARE OK.")
         # Verifica simmetria varianze
         if var_per_rx:
             vmax = max(var_per_rx.values())
             vmin = min(var_per_rx.values())
             if vmax > 0 and (vmax - vmin) / vmax < 0.1:
-                msgs.append("⚠  Le varianze dei 3 RX sono molto simili (<10% scarto).")
+                msgs.append("[WARN]  Le varianze dei 3 RX sono molto simili (<10% scarto).")
                 msgs.append("    → Movimento poco discriminante: il blob tenderà al centro stanza.")
                 msgs.append("    Suggerimenti:")
                 msgs.append("      - Verifica che la persona si muova abbastanza ampiamente")
