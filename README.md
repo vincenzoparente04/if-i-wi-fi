@@ -49,15 +49,15 @@ privacy-preserving sense of presence**, running on a €100-class board at the e
 
 > *The infrastructure is already in the room. We are just the first ones to listen.*
 
-## 🆚 Wi-Fi sensing vs. the usual suspects
+## Wi-Fi sensing vs. the usual suspects
 
-| |  Camera |  PIR sensor | ⌚ Wearable |  **If-I-Wi-Fi** |
+| | 📷 Camera | 🚶 PIR sensor | ⌚ Wearable | 📡 **If-I-Wi-Fi** |
 | --- | :---: | :---: | :---: | :---: |
-| Notices someone sitting still | [OK] | [ERROR] | [OK] | [OK] near the link |
-| Works in the dark | [WARN] needs IR | [OK] | [OK] | [OK] |
+| Notices someone sitting still | ✅ | ❌ | ✅ | ✅ near the link |
+| Works in the dark | ⚠️ needs IR | ✅ | ✅ | ✅ |
 | Needs people to cooperate | no | no | **yes** | no |
 | Captures images or identity | **yes** | no | **yes** | no |
-| Acceptable in bathrooms and bedrooms | [ERROR] | [OK] | [OK] | [OK] |
+| Acceptable in bathrooms and bedrooms | ❌ | ✅ | ✅ | ✅ |
 | New hardware | one per room | one per room | one per person | the existing AP + one board |
 | Knows *where* you are | precise | zone | with infrastructure | coarse, with an ESP32 mesh |
 
